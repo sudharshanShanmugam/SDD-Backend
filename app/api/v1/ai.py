@@ -12,6 +12,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db, verify_project_access
+from app.workers.runner import run_in_background
 from app.workers.tasks.ai_tasks import (
     generate_api_spec,
     generate_epics,
@@ -106,14 +107,14 @@ async def extract_requirements(
     """
     if project_id:
         await verify_project_access(db, project_id=project_id, user_id=str(current_user.id))
-    task = run_requirement_extraction.delay(
+    task_id = run_in_background(run_requirement_extraction,
         document_id=document_id,
         project_id=project_id,
         config=config.model_dump(),
         initiated_by=str(current_user.id),
     )
     return {
-        "run_id": task.id,
+        "run_id": task_id,
         "document_id": document_id,
         "status": "queued",
         "message": "Requirement extraction workflow triggered.",
@@ -131,6 +132,30 @@ async def get_workflow_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Poll the status of an AI workflow run by its Celery task ID."""
+    import json as _json, os as _os
+    try:
+        import redis as _redis
+        _r = _redis.from_url(_os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+        _raw = _r.get(f"celery-task-meta-{run_id}")
+        if _raw:
+            _data = _json.loads(_raw)
+            _state = _data.get("status", "PENDING")
+            _meta = _data.get("result") or {}
+            if isinstance(_meta, dict):
+                return WorkflowStatusResponse(
+                    run_id=run_id,
+                    workflow_type=_meta.get("workflow_type", "unknown"),
+                    status=_state.lower(),
+                    progress=_meta.get("progress", 100 if _state == "SUCCESS" else 0),
+                    current_step=_meta.get("current_step"),
+                    result=_meta if _state == "SUCCESS" else None,
+                    error=_data.get("traceback"),
+                    started_at=_meta.get("started_at", ""),
+                    completed_at=_meta.get("completed_at"),
+                )
+    except Exception:
+        pass
+
     from celery.result import AsyncResult
     from app.workers.celery_app import celery_app
 
@@ -191,12 +216,12 @@ async def trigger_generate_epics(
 ):
     """Generate epics using AI from analyzed requirements."""
     await verify_project_access(db, project_id=project_id, user_id=str(current_user.id))
-    task = generate_epics.delay(
+    task_id = run_in_background(generate_epics,
         project_id=project_id,
         config=config.model_dump(),
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "project_id": project_id, "status": "queued"}
+    return {"run_id": task_id, "project_id": project_id, "status": "queued"}
 
 
 @router.post(
@@ -222,12 +247,12 @@ async def trigger_generate_stories(
     if not _epic:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
     await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task = generate_stories.delay(
+    task_id = run_in_background(generate_stories,
         epic_id=epic_id,
         config=config.model_dump(),
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "epic_id": epic_id, "status": "queued"}
+    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
 
 
 class PlanSprintsRequest(BaseModel):
@@ -580,12 +605,12 @@ async def trigger_sprint_plan(
 ):
     """AI-generate an optimal sprint plan from the backlog."""
     await verify_project_access(db, project_id=project_id, user_id=str(current_user.id))
-    task = generate_sprint_plan.delay(
+    task_id = run_in_background(generate_sprint_plan,
         project_id=project_id,
         config=config.model_dump(),
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "project_id": project_id, "status": "queued"}
+    return {"run_id": task_id, "project_id": project_id, "status": "queued"}
 
 
 @router.post(
@@ -610,12 +635,12 @@ async def trigger_generate_tasks(
     if not _story:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found.")
     await verify_project_access(db, project_id=str(_story.project_id), user_id=str(current_user.id))
-    task = generate_tasks.delay(
+    task_id = run_in_background(generate_tasks,
         story_id=story_id,
         config=config.model_dump(),
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "story_id": story_id, "status": "queued"}
+    return {"run_id": task_id, "story_id": story_id, "status": "queued"}
 
 
 @router.post(
@@ -639,11 +664,11 @@ async def trigger_generate_qa(
     if not _story:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found.")
     await verify_project_access(db, project_id=str(_story.project_id), user_id=str(current_user.id))
-    task = generate_qa_cases.delay(
+    task_id = run_in_background(generate_qa_cases,
         story_id=story_id,
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "story_id": story_id, "status": "queued"}
+    return {"run_id": task_id, "story_id": story_id, "status": "queued"}
 
 
 @router.post(
@@ -667,11 +692,11 @@ async def trigger_generate_api_spec(
     if not _epic:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
     await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task = generate_api_spec.delay(
+    task_id = run_in_background(generate_api_spec,
         epic_id=epic_id,
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "epic_id": epic_id, "status": "queued"}
+    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
 
 
 @router.post(
@@ -695,11 +720,11 @@ async def trigger_generate_ui_spec(
     if not _epic:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
     await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task = generate_ui_spec.delay(
+    task_id = run_in_background(generate_ui_spec,
         epic_id=epic_id,
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "epic_id": epic_id, "status": "queued"}
+    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
 
 
 @router.post(
@@ -724,12 +749,12 @@ async def trigger_generate_release_notes(
     if not _sprint:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sprint not found.")
     await verify_project_access(db, project_id=str(_sprint.project_id), user_id=str(current_user.id))
-    task = generate_release_notes.delay(
+    task_id = run_in_background(generate_release_notes,
         sprint_id=sprint_id,
         audience=audience,
         initiated_by=str(current_user.id),
     )
-    return {"run_id": task.id, "sprint_id": sprint_id, "status": "queued"}
+    return {"run_id": task_id, "sprint_id": sprint_id, "status": "queued"}
 
 
 # ── Generations List ───────────────────────────────────────────────────────────
