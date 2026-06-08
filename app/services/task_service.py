@@ -276,6 +276,12 @@ class TaskService:
             data["time_actual_hours"] = data.pop("actual_hours")
         if "labels" in data:
             data["tags"] = data.pop("labels")
+        if "assignee_id" in data:
+            raw = data["assignee_id"]
+            try:
+                data["assignee_id"] = uuid.UUID(raw) if raw else None
+            except (ValueError, TypeError):
+                data["assignee_id"] = None
         # story_id is read-only after creation; ignore if sent
         data.pop("story_id", None)
 
