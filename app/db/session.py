@@ -26,6 +26,8 @@ def get_engine() -> AsyncEngine:
         connect_args: dict = {}
         if "asyncpg" in settings.DATABASE_URL:
             connect_args = {
+                "statement_cache_size": 0,   # required for Neon/PgBouncer pooling
+                "prepared_statement_cache_size": 0,
                 "server_settings": {
                     "application_name": settings.APP_NAME,
                     "jit": "off",
