@@ -166,9 +166,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
+        # Always ensure the production frontend origin is allowed, even if
+        # ALLOWED_ORIGINS is overridden by an env var with only localhost values.
+        _prod_frontend = "https://sdd-frontend.onrender.com"
+        if _prod_frontend not in self.ALLOWED_ORIGINS:
+            self.ALLOWED_ORIGINS = list(self.ALLOWED_ORIGINS) + [_prod_frontend]
+
         if self.is_production:
             if "placeholder" in self.DEEPINFRA_API_KEY.lower():
-                raise ValueError("OPENAI_API_KEY must be set in production")
+                raise ValueError("DEEPINFRA_API_KEY must be set in production")
             if len(self.SECRET_KEY) < 64:
                 raise ValueError("SECRET_KEY must be at least 64 characters in production")
         return self
