@@ -107,7 +107,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return allowed, count, retry_after
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if not self.enabled or request.url.path in _EXEMPT_PATHS:
+        if not self.enabled or request.url.path in _EXEMPT_PATHS or request.method == "OPTIONS":
             return await call_next(request)
 
         # ── Rate-limit check (Redis only) ──────────────────────────────────────
