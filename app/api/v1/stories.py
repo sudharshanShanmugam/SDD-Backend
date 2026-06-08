@@ -831,6 +831,40 @@ async def get_story(
     return _serialize_story(story)
 
 
+
+
+@router.patch(
+    "/bulk-status",
+    summary="Bulk update story statuses in one request",
+)
+async def bulk_update_story_status(
+    payload: dict,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update status for multiple stories in a single DB round-trip."""
+    from app.models.user_story import UserStory
+    from sqlalchemy import update as sa_update
+    import uuid as _uuid
+
+    ids: list[str] = payload.get("ids", [])
+    new_status: str = payload.get("status", "")
+    if not ids or not new_status:
+        raise HTTPException(status_code=400, detail="ids and status are required")
+
+    try:
+        uuids = [_uuid.UUID(i) for i in ids]
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid story id in list")
+
+    await db.execute(
+        sa_update(UserStory)
+        .where(UserStory.id.in_(uuids))
+        .values(status=new_status)
+    )
+    await db.commit()
+    return {"updated": len(uuids), "status": new_status}
+
 @router.patch(
     "/{story_id}",
     summary="Update user story",
@@ -1197,35 +1231,3 @@ async def generate_tests_for_story(
         "brain3": brain3,
     }
 
-
-@router.patch(
-    "/bulk-status",
-    summary="Bulk update story statuses in one request",
-)
-async def bulk_update_story_status(
-    payload: dict,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Update status for multiple stories in a single DB round-trip."""
-    from app.models.user_story import UserStory
-    from sqlalchemy import update as sa_update
-    import uuid as _uuid
-
-    ids: list[str] = payload.get("ids", [])
-    new_status: str = payload.get("status", "")
-    if not ids or not new_status:
-        raise HTTPException(status_code=400, detail="ids and status are required")
-
-    try:
-        uuids = [_uuid.UUID(i) for i in ids]
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid story id in list")
-
-    await db.execute(
-        sa_update(UserStory)
-        .where(UserStory.id.in_(uuids))
-        .values(status=new_status)
-    )
-    await db.commit()
-    return {"updated": len(uuids), "status": new_status}
