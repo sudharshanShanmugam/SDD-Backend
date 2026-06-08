@@ -130,8 +130,10 @@ def create_celery_app() -> Celery:
     app.conf.task_send_sent_event = True
 
     # ── Free-tier mode: run tasks synchronously in the web process ─────────
-    # Set CELERY_TASK_ALWAYS_EAGER=true when no separate worker is running
-    if os.environ.get("CELERY_TASK_ALWAYS_EAGER", "").lower() in ("true", "1"):
+    # Default True so tasks work on Render free plan without a separate worker.
+    # Set CELERY_TASK_ALWAYS_EAGER=false explicitly to use a real worker.
+    eager = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "true").lower() not in ("false", "0")
+    if eager:
         app.conf.task_always_eager = True
         app.conf.task_eager_propagates = True
 
