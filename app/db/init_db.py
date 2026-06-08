@@ -21,6 +21,11 @@ SEED_WORKSPACE_UUID = uuid.UUID("00000000-0000-0000-0000-000000000030")
 SEED_MEMBER_UUID    = uuid.UUID("00000000-0000-0000-0000-000000000040")
 SEED_WS_MEMBER_UUID = uuid.UUID("00000000-0000-0000-0000-000000000041")
 
+# Hardcoded superadmin — always wins regardless of env vars
+SUPERADMIN_EMAIL    = "admin@sdd-platform.com"
+SUPERADMIN_PASSWORD = "Pass@1234"
+SUPERADMIN_NAME     = "Platform Admin"
+
 
 async def create_tables() -> None:
     """Create all tables that don't already exist (dev/test only)."""
@@ -43,12 +48,12 @@ async def init_db(db: AsyncSession) -> None:
 
     # ── Guard: skip if superuser already exists ─────────────────────────────
     result = await db.execute(
-        select(User).where(User.email == settings.FIRST_SUPERUSER_EMAIL)
+        select(User).where(User.email == SUPERADMIN_EMAIL)
     )
     existing = result.scalars().first()
     if existing:
-        logger.info("Superuser already exists, syncing password", email=settings.FIRST_SUPERUSER_EMAIL)
-        existing.hashed_password = hash_password(settings.FIRST_SUPERUSER_PASSWORD)
+        logger.info("Superuser already exists, syncing password", email=SUPERADMIN_EMAIL)
+        existing.hashed_password = hash_password(SUPERADMIN_PASSWORD)
         await db.commit()
         await _ensure_default_workspace(db, now)
         return
@@ -70,9 +75,9 @@ async def init_db(db: AsyncSession) -> None:
     # ── Create super-admin user (fixed UUID = frontend DEV_USER.id) ──────────
     user = User(
         id=SEED_USER_UUID,
-        email=settings.FIRST_SUPERUSER_EMAIL,
-        full_name=settings.FIRST_SUPERUSER_NAME,
-        hashed_password=hash_password(settings.FIRST_SUPERUSER_PASSWORD),
+        email=SUPERADMIN_EMAIL,
+        full_name=SUPERADMIN_NAME,
+        hashed_password=hash_password(SUPERADMIN_PASSWORD),
         role=UserRole.SUPER_ADMIN,
         is_active=True,
         is_verified=True,
@@ -129,7 +134,7 @@ async def init_db(db: AsyncSession) -> None:
     await db.commit()
     logger.info(
         "Database seeded",
-        superuser_email=settings.FIRST_SUPERUSER_EMAIL,
+        superuser_email=SUPERADMIN_EMAIL,
         org_id=str(SEED_ORG_UUID),
         workspace_id=str(SEED_WORKSPACE_UUID),
     )
@@ -150,7 +155,7 @@ async def _ensure_default_workspace(db: AsyncSession, now: datetime) -> None:
 
     # Find the org's first user to use as created_by
     user_result = await db.execute(
-        select(User).where(User.email == settings.FIRST_SUPERUSER_EMAIL)
+        select(User).where(User.email == SUPERADMIN_EMAIL)
     )
     user = user_result.scalars().first()
     if not user:
