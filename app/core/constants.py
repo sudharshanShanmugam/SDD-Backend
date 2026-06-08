@@ -281,6 +281,8 @@ class StoryStatus(str, Enum):
     TESTING = "testing"
     DONE = "done"
     CANCELLED = "cancelled"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class TaskStatus(str, Enum):
