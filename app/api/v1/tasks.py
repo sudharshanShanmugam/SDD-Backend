@@ -41,6 +41,7 @@ class TaskUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=500)
     description: str | None = None
     assignee_id: str | None = None
+    reporter_id: str | None = None
     priority: str | None = None
     status: str | None = None
     task_type: str | None = None

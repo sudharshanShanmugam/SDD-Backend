@@ -38,6 +38,9 @@ class Task(Base, TimestampMixin, SoftDeleteMixin):
     assignee_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    reporter_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     parent_task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
     )
@@ -77,6 +80,9 @@ class Task(Base, TimestampMixin, SoftDeleteMixin):
     user_story: Mapped[Optional["UserStory"]] = relationship("UserStory", back_populates="tasks")
     assignee: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[assignee_id], back_populates="assigned_tasks"
+    )
+    reporter: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[reporter_id], lazy="noload"
     )
     subtasks: Mapped[list["Task"]] = relationship(
         "Task", foreign_keys=[parent_task_id], back_populates="parent_task", lazy="noload"

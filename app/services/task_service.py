@@ -73,7 +73,12 @@ def _serialize_task(t) -> dict:
         "loggedHours":    t.time_actual_hours or 0,
         # ── people ────────────────────────────────────────────────────────────
         "assignee":       assignee_obj,
-        "reporter":       None,                         # not tracked separately yet
+        "reporter": {
+            "id": str(t.reporter.id),
+            "displayName": t.reporter.full_name,
+            "email": t.reporter.email,
+            "avatar": getattr(t.reporter, "avatar_url", None),
+        } if getattr(t, "reporter", None) else None,
         # ── misc ──────────────────────────────────────────────────────────────
         "tags":           t.tags or [],
         "isAiGenerated":  t.is_ai_generated,
@@ -209,7 +214,7 @@ class TaskService:
         # Eagerly load assignee so _serialize_task can build the UserSummary object
         query = (
             select(Task)
-            .options(selectinload(Task.assignee))
+            .options(selectinload(Task.assignee), selectinload(Task.reporter))
             .where(Task.deleted_at.is_(None))
         )
         if project_id:
@@ -282,6 +287,12 @@ class TaskService:
                 data["assignee_id"] = uuid.UUID(raw) if raw else None
             except (ValueError, TypeError):
                 data["assignee_id"] = None
+        if "reporter_id" in data:
+            raw = data["reporter_id"]
+            try:
+                data["reporter_id"] = uuid.UUID(raw) if raw else None
+            except (ValueError, TypeError):
+                data["reporter_id"] = None
         # story_id is read-only after creation; ignore if sent
         data.pop("story_id", None)
 
