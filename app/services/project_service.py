@@ -262,16 +262,84 @@ class ProjectService:
         return result.rowcount > 0
 
     async def get_stats(self, project_id: str) -> dict:
-        """Aggregate project statistics."""
-        # Placeholder - would query epics/stories/tasks tables
+        """Aggregate project statistics with task workload per assignee."""
+        import uuid as _uuid
+        from sqlalchemy import func as _func, case as _case
+        from app.models.epic import Epic
+        from app.models.user_story import UserStory
+        from app.models.task import Task
+        from app.models.user import User
+
+        try:
+            pid = _uuid.UUID(project_id)
+        except (ValueError, TypeError):
+            pid = None
+
+        if not pid:
+            return {"project_id": project_id}
+
+        # Epic counts
+        e_total = (await self.db.execute(select(_func.count()).select_from(Epic).where(Epic.project_id == pid, Epic.deleted_at == None))).scalar() or 0
+
+        # Story counts by status
+        story_rows = (await self.db.execute(
+            select(UserStory.status, _func.count()).select_from(UserStory)
+            .where(UserStory.project_id == pid, UserStory.deleted_at == None)
+            .group_by(UserStory.status)
+        )).all()
+        story_by_status = {r[0]: r[1] for r in story_rows}
+        story_total = sum(story_by_status.values())
+
+        # Task counts by status
+        task_rows = (await self.db.execute(
+            select(Task.status, _func.count()).select_from(Task)
+            .where(Task.project_id == pid, Task.deleted_at == None)
+            .group_by(Task.status)
+        )).all()
+        task_by_status = {r[0]: r[1] for r in task_rows}
+        task_total = sum(task_by_status.values())
+
+        # Task workload per assignee
+        workload_rows = (await self.db.execute(
+            select(User.id, User.full_name, User.email, _func.count(Task.id).label("task_count"))
+            .join(Task, Task.assignee_id == User.id)
+            .where(Task.project_id == pid, Task.deleted_at == None)
+            .group_by(User.id, User.full_name, User.email)
+            .order_by(_func.count(Task.id).desc())
+        )).all()
+
+        workload = [
+            {
+                "userId": str(r[0]),
+                "name": r[1],
+                "email": r[2],
+                "taskCount": r[3],
+                "completedCount": 0,
+            }
+            for r in workload_rows
+        ]
+
+        # Per-assignee completed count
+        done_rows = (await self.db.execute(
+            select(Task.assignee_id, _func.count())
+            .where(Task.project_id == pid, Task.deleted_at == None, Task.status == "done")
+            .group_by(Task.assignee_id)
+        )).all()
+        done_map = {str(r[0]): r[1] for r in done_rows if r[0]}
+        for w in workload:
+            w["completedCount"] = done_map.get(w["userId"], 0)
+
         return {
             "project_id": project_id,
-            "epic_count": 0,
-            "story_count": 0,
-            "task_count": 0,
-            "completed_stories": 0,
-            "in_progress_stories": 0,
-            "todo_stories": 0,
+            "epic_count": e_total,
+            "story_count": story_total,
+            "story_by_status": story_by_status,
+            "task_count": task_total,
+            "task_by_status": task_by_status,
+            "completed_tasks": task_by_status.get("done", 0),
+            "in_progress_tasks": task_by_status.get("in_progress", 0),
+            "todo_tasks": task_by_status.get("todo", 0),
+            "workload": workload,
         }
 
     async def get_member_role(self, project_id: str, user_id: str) -> str | None:
