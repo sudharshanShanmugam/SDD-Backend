@@ -161,7 +161,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
         if self.is_production:
-            if "placeholder" in self.OPENAI_API_KEY.lower():
+            if "placeholder" in self.DEEPINFRA_API_KEY.lower():
                 raise ValueError("OPENAI_API_KEY must be set in production")
             if len(self.SECRET_KEY) < 64:
                 raise ValueError("SECRET_KEY must be at least 64 characters in production")
