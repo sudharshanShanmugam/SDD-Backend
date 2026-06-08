@@ -84,7 +84,28 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
+    # ── Custom middleware ─────────────────────────────────────────────────────
+    # add_middleware inserts at index 0 each time, so the LAST call becomes
+    # the outermost wrapper (runs first on requests, last on responses).
+    # CORS must be outermost to intercept OPTIONS preflight before any other
+    # middleware can reject it.
+    from app.middleware.logging import RequestLoggingMiddleware
+    from app.middleware.tenant import TenantMiddleware
+    from app.middleware.rate_limit import RateLimitMiddleware
+    from app.middleware.audit import AuditMiddleware
+
+    app.add_middleware(AuditMiddleware)
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
+        requests_per_hour=settings.RATE_LIMIT_PER_HOUR,
+        enabled=settings.RATE_LIMIT_ENABLED,
+    )
+    app.add_middleware(TenantMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    # CORS last → outermost → runs first, handles OPTIONS before anything else
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
@@ -93,25 +114,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         expose_headers=["X-Request-ID", "X-RateLimit-Limit-Minute", "X-RateLimit-Remaining-Minute"],
     )
-
-    # Gzip
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-    # ── Custom middleware (order matters – outermost runs first) ───────────────
-    from app.middleware.logging import RequestLoggingMiddleware
-    from app.middleware.tenant import TenantMiddleware
-    from app.middleware.rate_limit import RateLimitMiddleware
-    from app.middleware.audit import AuditMiddleware
-
-    app.add_middleware(RequestLoggingMiddleware)
-    app.add_middleware(TenantMiddleware)
-    app.add_middleware(
-        RateLimitMiddleware,
-        requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
-        requests_per_hour=settings.RATE_LIMIT_PER_HOUR,
-        enabled=settings.RATE_LIMIT_ENABLED,
-    )
-    app.add_middleware(AuditMiddleware)
 
     # ── Exception handlers ────────────────────────────────────────────────────
     @app.exception_handler(SDDBaseException)
