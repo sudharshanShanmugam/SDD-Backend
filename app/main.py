@@ -40,40 +40,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         environment=settings.ENVIRONMENT,
     )
 
-    # Run alembic migrations before anything else
-    import subprocess, sys
-    migration_result = subprocess.run(
-        [sys.executable, "-m", "alembic", "-c", "alembic/alembic.ini", "upgrade", "head"],
-        capture_output=True, text=True
-    )
-    if migration_result.returncode != 0:
-        logger.error("Alembic migration failed", stderr=migration_result.stderr)
-    else:
-        logger.info("Alembic migrations applied", stdout=migration_result.stdout)
-
-    # Warm up DB connection pool
+    # Create all tables directly from models (reliable for fresh deployments)
     engine = get_engine()
     from sqlalchemy import text as sa_text
-    async with engine.connect() as conn:
-        await conn.execute(sa_text("SELECT 1"))
+    from app.db.base import Base
+    import app.models  # noqa: F401 — registers all models with Base.metadata
 
-    # Ensure task_time_logs table exists
-    from sqlalchemy import text as _text
-    async with engine.begin() as _conn:
-        await _conn.execute(_text("""
-            CREATE TABLE IF NOT EXISTS task_time_logs (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-                user_id UUID,
-                hours FLOAT NOT NULL,
-                description TEXT,
-                logged_date VARCHAR(20) NOT NULL,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )
-        """))
-        await _conn.execute(_text(
-            "CREATE INDEX IF NOT EXISTS ix_task_time_logs_task ON task_time_logs(task_id)"
-        ))
+    async with engine.begin() as conn:
+        # Enable pgcrypto for gen_random_uuid()
+        await conn.execute(sa_text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.run_sync(Base.metadata.create_all)
+
+    logger.info("Database schema created/verified")
 
     # Seed initial data in non-testing environments
     if not settings.is_testing:
