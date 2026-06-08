@@ -301,7 +301,14 @@ class TaskService:
             update(Task).where(Task.id == task_uuid).values(**data)
         )
         await self.db.commit()
-        task = await self.db.get(Task, task_uuid)
+        # Reload with relationships so serialization includes assignee/reporter
+        from sqlalchemy import select as _sel
+        result = await self.db.execute(
+            _sel(Task)
+            .where(Task.id == task_uuid)
+            .options(selectinload(Task.assignee), selectinload(Task.reporter))
+        )
+        task = result.scalar_one_or_none()
         return _serialize_task(task) if task else None
 
     async def delete_task(self, task_id: str) -> None:
