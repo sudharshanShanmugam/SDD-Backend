@@ -50,6 +50,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Enable pgcrypto for gen_random_uuid()
         await conn.execute(sa_text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
         await conn.run_sync(Base.metadata.create_all)
+        # Add columns introduced after initial deploy (idempotent)
+        await conn.execute(sa_text("""
+            ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reporter_id UUID
+                REFERENCES users(id) ON DELETE SET NULL;
+        """))
 
     logger.info("Database schema created/verified")
 
