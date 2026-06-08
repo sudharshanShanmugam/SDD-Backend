@@ -47,8 +47,9 @@ async def init_db(db: AsyncSession) -> None:
     )
     existing = result.scalars().first()
     if existing:
-        logger.info("Superuser already exists, skipping seed", email=settings.FIRST_SUPERUSER_EMAIL)
-        # Still ensure the workspace exists for returning users
+        logger.info("Superuser already exists, syncing password", email=settings.FIRST_SUPERUSER_EMAIL)
+        existing.hashed_password = hash_password(settings.FIRST_SUPERUSER_PASSWORD)
+        await db.commit()
         await _ensure_default_workspace(db, now)
         return
 
