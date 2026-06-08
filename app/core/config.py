@@ -23,7 +23,13 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1"]
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:4173",
+        "https://sdd-frontend.onrender.com",
+    ]
 
     @field_validator("ALLOWED_HOSTS", "ALLOWED_ORIGINS", mode="before")
     @classmethod
