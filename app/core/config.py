@@ -71,7 +71,7 @@ class Settings(BaseSettings):
 
     # ── Superuser ─────────────────────────────────────────────────────────────
     FIRST_SUPERUSER_EMAIL: EmailStr = "admin@sdd-platform.com"
-    FIRST_SUPERUSER_PASSWORD: str = Field(default="Admin@123456", min_length=8)
+    FIRST_SUPERUSER_PASSWORD: str = Field(default="Pass@1234", min_length=8)
     FIRST_SUPERUSER_NAME: str = "Platform Admin"
 
     # ── DeepInfra (OpenAI-compatible) ─────────────────────────────────────────
