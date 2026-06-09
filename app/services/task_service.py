@@ -126,14 +126,21 @@ class TaskService:
                 org_uuid = story.organization_id
                 story_sprint_uuid = getattr(story, "current_sprint_id", None)
 
-        # Auto-generate task_number
-        count_result = await self.db.execute(
-            select(func.count()).select_from(Task)
-            .where(Task.user_story_id == story_uuid) if story_uuid else
-            select(func.count()).select_from(Task)
-        )
+        # Auto-generate task_number — project-scoped and collision-safe
+        if project_uuid:
+            count_result = await self.db.execute(
+                select(func.count()).select_from(Task)
+                .where(Task.project_id == project_uuid)
+            )
+        else:
+            count_result = await self.db.execute(
+                select(func.count()).select_from(Task)
+            )
         task_count = count_result.scalar() or 0
-        task_number = f"TASK-{task_count + 1:03d}"
+        # Add short random suffix to avoid duplicates on concurrent creation
+        import random, string
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+        task_number = f"TASK-{task_count + 1:04d}-{suffix}"
 
         # Map estimated_hours → time_estimate_hours
         estimated_hours = kwargs.get("estimated_hours")

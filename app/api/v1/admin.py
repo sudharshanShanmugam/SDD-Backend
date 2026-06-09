@@ -34,8 +34,13 @@ class CreateUserRequest(BaseModel):
     email: EmailStr
     firstName: str
     lastName: str
+    password: str | None = None
     role: str = "developer"
     organization: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    password: str
 
 
 @router.get(
@@ -94,13 +99,16 @@ async def admin_create_user(
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    alphabet = string.ascii_letters + string.digits + "!@#$%"
-    temp_password = "".join(secrets.choice(alphabet) for _ in range(16))
+    if payload.password:
+        chosen_password = payload.password
+    else:
+        alphabet = string.ascii_letters + string.digits + "!@#$%"
+        chosen_password = "".join(secrets.choice(alphabet) for _ in range(16))
 
     full_name = f"{payload.firstName} {payload.lastName}".strip()
     user = await svc.create_user(
         email=payload.email,
-        password=temp_password,
+        password=chosen_password,
         full_name=full_name,
         role=payload.role,
     )
@@ -227,6 +235,26 @@ async def edit_user(
         "role": updated.role,
         "is_active": updated.is_active,
     }
+
+
+@router.put(
+    "/users/{user_id}/reset-password",
+    summary="Admin: reset a user's password",
+)
+async def admin_reset_password(
+    user_id: str,
+    payload: ResetPasswordRequest,
+    current_user=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set a new password for any user. Admin only."""
+    from app.core.security import hash_password
+    svc = UserService(db)
+    user = await svc.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    await svc.update_user(user_id, {"hashed_password": hash_password(payload.password)})
+    return {"id": user_id, "message": "Password updated successfully"}
 
 
 class BulkUserIdsRequest(BaseModel):

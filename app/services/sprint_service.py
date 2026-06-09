@@ -227,13 +227,7 @@ class SprintService:
         ).scalars().all()
 
         for story in incomplete_stories:
-            if incomplete_action == "backlog":
-                await self.db.execute(
-                    update(UserStory)
-                    .where(UserStory.id == story.id)
-                    .values(current_sprint_id=None)
-                )
-            elif incomplete_action == "next_sprint" and next_sprint_id:
+            if incomplete_action == "next_sprint" and next_sprint_id:
                 try:
                     next_uuid = uuid.UUID(next_sprint_id)
                     await self.db.execute(
@@ -243,6 +237,9 @@ class SprintService:
                     )
                 except (ValueError, TypeError):
                     pass
+            # "backlog" action: keep current_sprint_id intact so the completed
+            # sprint retains its story history. The planning page backlog shows
+            # stories from completed sprints as available for re-assignment.
 
         # Calculate velocity before completing (sum of story_points for done stories)
         velocity_result = await self.db.execute(
