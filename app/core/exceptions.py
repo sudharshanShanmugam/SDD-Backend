@@ -119,11 +119,6 @@ class RequirementNotFoundError(NotFoundError):
     message = "Requirement not found"
 
 
-class EpicNotFoundError(NotFoundError):
-    error_code = "EPIC_NOT_FOUND"
-    message = "Epic not found"
-
-
 class StoryNotFoundError(NotFoundError):
     error_code = "STORY_NOT_FOUND"
     message = "User story not found"

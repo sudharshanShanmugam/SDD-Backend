@@ -15,7 +15,6 @@ from app.core.dependencies import get_current_user, get_db, verify_project_acces
 from app.workers.runner import run_in_background
 from app.workers.tasks.ai_tasks import (
     generate_api_spec,
-    generate_epics,
     generate_qa_cases,
     generate_release_notes,
     generate_sprint_plan,
@@ -33,15 +32,7 @@ class ExtractionConfig(BaseModel):
     extract_functional: bool = True
     extract_non_functional: bool = True
     extract_business: bool = True
-    auto_generate_epics: bool = False
     prompt_override: str | None = None
-
-
-class EpicGenerationConfig(BaseModel):
-    max_epics: int = Field(default=10, ge=1, le=50)
-    include_api_specs: bool = False
-    include_ui_specs: bool = False
-    context: str | None = None
 
 
 class StoryGenerationConfig(BaseModel):
@@ -203,56 +194,6 @@ async def get_workflow_status(
 
 # ── Generation ─────────────────────────────────────────────────────────────────
 
-@router.post(
-    "/generate-epics/{project_id}",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Generate epics from project requirements",
-)
-async def trigger_generate_epics(
-    project_id: str,
-    config: EpicGenerationConfig = EpicGenerationConfig(),
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Generate epics using AI from analyzed requirements."""
-    await verify_project_access(db, project_id=project_id, user_id=str(current_user.id))
-    task_id = run_in_background(generate_epics,
-        project_id=project_id,
-        config=config.model_dump(),
-        initiated_by=str(current_user.id),
-    )
-    return {"run_id": task_id, "project_id": project_id, "status": "queued"}
-
-
-@router.post(
-    "/generate-stories/{epic_id}",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Generate user stories from an epic",
-)
-async def trigger_generate_stories(
-    epic_id: str,
-    config: StoryGenerationConfig = StoryGenerationConfig(),
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Generate user stories for an epic using AI."""
-    from app.models.epic import Epic as _Epic
-    from sqlalchemy import select as _sa_select
-    try:
-        _epic_uuid = uuid.UUID(epic_id)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid epic_id")
-    _epic_res = await db.execute(_sa_select(_Epic).where(_Epic.id == _epic_uuid))
-    _epic = _epic_res.scalar_one_or_none()
-    if not _epic:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
-    await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task_id = run_in_background(generate_stories,
-        epic_id=epic_id,
-        config=config.model_dump(),
-        initiated_by=str(current_user.id),
-    )
-    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
 
 
 class PlanSprintsRequest(BaseModel):
@@ -671,60 +612,6 @@ async def trigger_generate_qa(
     return {"run_id": task_id, "story_id": story_id, "status": "queued"}
 
 
-@router.post(
-    "/generate-api-spec/{epic_id}",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Generate OpenAPI spec for an epic",
-)
-async def trigger_generate_api_spec(
-    epic_id: str,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from app.models.epic import Epic as _Epic
-    from sqlalchemy import select as _sa_select
-    try:
-        _epic_uuid = uuid.UUID(epic_id)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid epic_id")
-    _epic_res = await db.execute(_sa_select(_Epic).where(_Epic.id == _epic_uuid))
-    _epic = _epic_res.scalar_one_or_none()
-    if not _epic:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
-    await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task_id = run_in_background(generate_api_spec,
-        epic_id=epic_id,
-        initiated_by=str(current_user.id),
-    )
-    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
-
-
-@router.post(
-    "/generate-ui-spec/{epic_id}",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Generate UI/UX specification for an epic",
-)
-async def trigger_generate_ui_spec(
-    epic_id: str,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from app.models.epic import Epic as _Epic
-    from sqlalchemy import select as _sa_select
-    try:
-        _epic_uuid = uuid.UUID(epic_id)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid epic_id")
-    _epic_res = await db.execute(_sa_select(_Epic).where(_Epic.id == _epic_uuid))
-    _epic = _epic_res.scalar_one_or_none()
-    if not _epic:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Epic not found.")
-    await verify_project_access(db, project_id=str(_epic.project_id), user_id=str(current_user.id))
-    task_id = run_in_background(generate_ui_spec,
-        epic_id=epic_id,
-        initiated_by=str(current_user.id),
-    )
-    return {"run_id": task_id, "epic_id": epic_id, "status": "queued"}
 
 
 @router.post(

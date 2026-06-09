@@ -4,7 +4,6 @@ from app.repositories.user import UserRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.workspace import WorkspaceRepository
 from app.repositories.project import ProjectRepository
-from app.repositories.epic import EpicRepository
 from app.repositories.user_story import UserStoryRepository
 
 __all__ = [
@@ -13,6 +12,5 @@ __all__ = [
     "OrganizationRepository",
     "WorkspaceRepository",
     "ProjectRepository",
-    "EpicRepository",
     "UserStoryRepository",
 ]

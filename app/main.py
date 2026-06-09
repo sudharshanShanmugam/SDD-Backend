@@ -55,6 +55,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reporter_id UUID
                 REFERENCES users(id) ON DELETE SET NULL;
         """))
+        await conn.execute(sa_text("""
+            ALTER TABLE tasks ADD COLUMN IF NOT EXISTS due_date VARCHAR(20);
+        """))
 
     logger.info("Database schema created/verified")
 

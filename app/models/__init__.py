@@ -8,7 +8,6 @@ from app.models.workspace import Workspace, WorkspaceMember
 from app.models.project import Project, ProjectMember
 from app.models.document import Document
 from app.models.requirement import Requirement
-from app.models.epic import Epic
 from app.models.user_story import UserStory
 from app.models.sprint import Sprint, SprintUserStory
 from app.models.task import Task
@@ -37,7 +36,6 @@ __all__ = [
     "ProjectMember",
     "Document",
     "Requirement",
-    "Epic",
     "UserStory",
     "Sprint",
     "SprintUserStory",

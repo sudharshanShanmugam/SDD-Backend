@@ -57,7 +57,6 @@ class Project(Base, TimestampMixin, SoftDeleteMixin):
     requirements: Mapped[list["Requirement"]] = relationship(
         "Requirement", back_populates="project", lazy="noload"
     )
-    epics: Mapped[list["Epic"]] = relationship("Epic", back_populates="project", lazy="noload")
     sprints: Mapped[list["Sprint"]] = relationship("Sprint", back_populates="project", lazy="noload")
     ai_generations: Mapped[list["AIGeneration"]] = relationship(
         "AIGeneration", back_populates="project", lazy="noload"
@@ -101,7 +100,6 @@ from app.models.workspace import Workspace  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.models.document import Document  # noqa: E402
 from app.models.requirement import Requirement  # noqa: E402
-from app.models.epic import Epic  # noqa: E402
 from app.models.sprint import Sprint  # noqa: E402
 from app.models.ai_generation import AIGeneration  # noqa: E402
 from app.models.workflow import WorkflowState  # noqa: E402

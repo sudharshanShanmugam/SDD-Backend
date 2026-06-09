@@ -87,7 +87,7 @@ def _serialize_task(t) -> dict:
         "blockedBy":      [],
         "subTasks":       [],
         "checklist":      [],
-        "dueDate":        None,
+        "dueDate":        getattr(t, "due_date", None),
         "startedAt":      None,
         "completedAt":    None,
         # ── audit ─────────────────────────────────────────────────────────────
@@ -297,16 +297,22 @@ class TaskService:
         data.pop("story_id", None)
 
         data["updated_at"] = datetime.now(tz=timezone.utc)
-        await self.db.execute(
-            update(Task).where(Task.id == task_uuid).values(**data)
-        )
-        await self.db.commit()
+        try:
+            await self.db.execute(
+                update(Task).where(Task.id == task_uuid).values(**data)
+            )
+            await self.db.commit()
+        except Exception as exc:
+            await self.db.rollback()
+            logger.error("update_task DB error task=%s data_keys=%s: %s", task_id, list(data.keys()), exc, exc_info=True)
+            raise
         # Reload with relationships so serialization includes assignee/reporter
         from sqlalchemy import select as _sel
+        from sqlalchemy.orm import selectinload as _selectinload
         result = await self.db.execute(
             _sel(Task)
             .where(Task.id == task_uuid)
-            .options(selectinload(Task.assignee), selectinload(Task.reporter))
+            .options(_selectinload(Task.assignee), _selectinload(Task.reporter))
         )
         task = result.scalar_one_or_none()
         return _serialize_task(task) if task else None

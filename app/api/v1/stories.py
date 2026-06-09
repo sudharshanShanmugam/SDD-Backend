@@ -21,8 +21,7 @@ router = APIRouter()
 class StoryCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     description: str | None = None
-    epic_id: str | None = None          # optional — epics removed from workflow
-    project_id: str | None = None       # optional — used when epic_id not provided
+    project_id: str | None = None
     sprint_id: str | None = None
     assignee_id: str | None = None
     priority: str = Field(default="medium", pattern="^(critical|high|medium|low)$")
@@ -57,8 +56,6 @@ class StoryUpdateRequest(BaseModel):
     acceptanceCriteria: list[str] | None = None
     points: int | None = Field(default=None, ge=0, le=100)
     sprintId: str | None = None
-    epicId: str | None = None
-
     def to_db_fields(self) -> dict:
         """Return a dict of DB column names → values, resolving camelCase aliases."""
         d: dict = {}
@@ -86,11 +83,8 @@ class StoryUpdateRequest(BaseModel):
         if ac is not None:
             d["acceptance_criteria"] = "\n".join(str(a) for a in ac)
 
-        # sprint / epic ids
         sprint = self.sprintId or self.sprint_id
         if sprint is not None: d["current_sprint_id"] = sprint
-        epic = self.epicId
-        if epic is not None: d["epic_id"] = epic
 
         return d
 
@@ -108,7 +102,6 @@ class StoryResponse(BaseModel):
     id: str
     title: str
     description: str | None
-    epic_id: str | None
     sprint_id: str | None
     assignee_id: str | None
     priority: str
@@ -129,7 +122,7 @@ class StoryResponse(BaseModel):
         from_attributes = True
 
 
-# ── LLM helpers (shared with epics generation) ──────────────────────────────
+# ── LLM helpers ──────────────────────────────────────────────────────────────
 
 def _req_line(r) -> str:
     r_type = (

@@ -63,9 +63,6 @@ class Requirement(Base, TimestampMixin, SoftDeleteMixin):
     source_document: Mapped[Optional["Document"]] = relationship(
         "Document", back_populates="requirements"
     )
-    epics: Mapped[list["Epic"]] = relationship(
-        "Epic", secondary="epic_requirements", back_populates="requirements", lazy="noload"
-    )
     user_stories: Mapped[list["UserStory"]] = relationship(
         "UserStory", back_populates="requirement", lazy="noload"
     )
@@ -76,5 +73,4 @@ class Requirement(Base, TimestampMixin, SoftDeleteMixin):
 
 from app.models.project import Project  # noqa: E402
 from app.models.document import Document  # noqa: E402
-from app.models.epic import Epic  # noqa: E402
 from app.models.user_story import UserStory  # noqa: E402

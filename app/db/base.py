@@ -8,7 +8,6 @@ from app.models.workspace import Workspace, WorkspaceMember  # noqa: F401
 from app.models.project import Project, ProjectMember  # noqa: F401
 from app.models.document import Document  # noqa: F401
 from app.models.requirement import Requirement  # noqa: F401
-from app.models.epic import Epic  # noqa: F401
 from app.models.user_story import UserStory  # noqa: F401
 from app.models.sprint import Sprint, SprintUserStory  # noqa: F401
 from app.models.task import Task  # noqa: F401

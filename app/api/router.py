@@ -11,7 +11,6 @@ from app.api.v1 import (
     projects,
     documents,
     requirements,
-    epics,
     stories,
     sprints,
     tasks,
@@ -35,7 +34,6 @@ api_router.include_router(workspaces.router, prefix="/workspaces", tags=["Worksp
 api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
 api_router.include_router(documents.router, prefix="/documents", tags=["Documents"])
 api_router.include_router(requirements.router, prefix="/requirements", tags=["Requirements"])
-api_router.include_router(epics.router, prefix="/epics", tags=["Epics"])
 api_router.include_router(stories.router, prefix="/stories", tags=["Stories"])
 api_router.include_router(sprints.router, prefix="/sprints", tags=["Sprints"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])

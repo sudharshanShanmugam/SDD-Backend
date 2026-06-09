@@ -14,7 +14,6 @@ class UserStory(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "user_stories"
     __table_args__ = (
         Index("ix_story_project", "project_id"),
-        Index("ix_story_epic", "epic_id"),
         Index("ix_story_org", "organization_id"),
         Index("ix_story_status", "status"),
         Index("ix_story_sprint", "current_sprint_id"),
@@ -27,9 +26,7 @@ class UserStory(Base, TimestampMixin, SoftDeleteMixin):
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
-    epic_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("epics.id", ondelete="SET NULL"), nullable=True
-    )
+    epic_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
     requirement_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("requirements.id", ondelete="SET NULL"), nullable=True
     )
@@ -75,7 +72,6 @@ class UserStory(Base, TimestampMixin, SoftDeleteMixin):
     metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True, default=dict)
 
     # Relationships
-    epic: Mapped[Optional["Epic"]] = relationship("Epic", back_populates="user_stories")
     requirement: Mapped[Optional["Requirement"]] = relationship(
         "Requirement", back_populates="user_stories"
     )
@@ -99,7 +95,6 @@ class UserStory(Base, TimestampMixin, SoftDeleteMixin):
         return f"<UserStory id={self.id} num={self.story_number} status={self.status}>"
 
 
-from app.models.epic import Epic  # noqa: E402
 from app.models.requirement import Requirement  # noqa: E402
 from app.models.task import Task  # noqa: E402
 from app.models.sprint import SprintUserStory  # noqa: E402

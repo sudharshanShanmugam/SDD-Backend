@@ -62,6 +62,7 @@ class Task(Base, TimestampMixin, SoftDeleteMixin):
     time_actual_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     time_remaining_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    due_date: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # YYYY-MM-DD
     started_at: Mapped[Optional[str]] = mapped_column(nullable=True)
     completed_at: Mapped[Optional[str]] = mapped_column(nullable=True)
     blocked_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

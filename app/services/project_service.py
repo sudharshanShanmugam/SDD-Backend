@@ -265,7 +265,6 @@ class ProjectService:
         """Aggregate project statistics with task workload per assignee."""
         import uuid as _uuid
         from sqlalchemy import func as _func, case as _case
-        from app.models.epic import Epic
         from app.models.user_story import UserStory
         from app.models.task import Task
         from app.models.user import User
@@ -277,9 +276,6 @@ class ProjectService:
 
         if not pid:
             return {"project_id": project_id}
-
-        # Epic counts
-        e_total = (await self.db.execute(select(_func.count()).select_from(Epic).where(Epic.project_id == pid, Epic.deleted_at == None))).scalar() or 0
 
         # Story counts by status
         story_rows = (await self.db.execute(
@@ -331,7 +327,6 @@ class ProjectService:
 
         return {
             "project_id": project_id,
-            "epic_count": e_total,
             "story_count": story_total,
             "story_by_status": story_by_status,
             "task_count": task_total,

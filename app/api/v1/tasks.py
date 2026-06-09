@@ -144,10 +144,10 @@ async def get_task(
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Invalid task_id.")
 
-    # Use selectinload so the assignee relationship is populated for serialization
+    # Use selectinload so the assignee/reporter relationships are populated for serialization
     result = await db.execute(
         _select(TaskModel)
-        .options(_selectinload(TaskModel.assignee))
+        .options(_selectinload(TaskModel.assignee), _selectinload(TaskModel.reporter))
         .where(TaskModel.id == task_uuid, TaskModel.deleted_at.is_(None))
     )
     task = result.scalar_one_or_none()
@@ -176,7 +176,7 @@ async def update_task(
         await verify_project_access(db, project_id=str(task.project_id), user_id=str(current_user.id))
     return await svc.update_task(
         task_id=task_id,
-        data=payload.model_dump(exclude_none=True),
+        data=payload.model_dump(exclude_unset=True),
         updated_by=str(current_user.id),
     )
 

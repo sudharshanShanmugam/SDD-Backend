@@ -52,20 +52,11 @@ class AnalyticsService:
         period: str,
     ) -> dict:
         """Project-level analytics."""
-        from app.models.epic import Epic
         from app.models.story import Story
         from app.models.task import Task
 
         days = self._period_to_days(period)
         since = datetime.now(tz=timezone.utc) - timedelta(days=days)
-
-        epic_result = await self.db.execute(
-            select(
-                func.count(Epic.id).label("total"),
-                func.sum(case((Epic.status == "done", 1), else_=0)).label("done"),
-            ).where(Epic.project_id == project_id)
-        )
-        epic_row = epic_result.one()
 
         story_result = await self.db.execute(
             select(
@@ -82,11 +73,6 @@ class AnalyticsService:
         return {
             "project_id": project_id,
             "period": period,
-            "epics": {
-                "total": epic_row.total or 0,
-                "done": epic_row.done or 0,
-                "completion_rate": round((epic_row.done or 0) / max(epic_row.total or 1, 1) * 100, 1),
-            },
             "stories": {
                 "total": story_row.total or 0,
                 "done": story_row.done or 0,
@@ -190,7 +176,6 @@ class AnalyticsService:
     async def get_traceability_matrix(self, project_id: str) -> dict:
         """Requirements to stories to tasks traceability."""
         from app.models.requirement import Requirement
-        from app.models.epic import Epic
         from app.models.story import Story
 
         requirements = (

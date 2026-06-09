@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 from app.ai.agents.api_spec_generator import APISpecGeneratorAgent
 from app.ai.agents.dependency_analyzer import DependencyAnalyzerAgent
 from app.ai.agents.documentation_agent import DocumentationAgent
-from app.ai.agents.epic_generator import EpicGeneratorAgent
 from app.ai.agents.estimation_agent import EstimationAgent
 from app.ai.agents.qa_generator import QAGeneratorAgent
 from app.ai.agents.release_notes_agent import ReleaseNotesAgent
@@ -329,116 +328,30 @@ async def await_stories_approval_node(state: SDLCWorkflowState) -> Dict[str, Any
     }
 
 
-# ── Epic Node ─────────────────────────────────────────────────────────────────
+# ── Epic Node (disabled — epic feature removed) ────────────────────────────────
 
 async def generate_epics_node(state: SDLCWorkflowState) -> Dict[str, Any]:
-    """Generate epics from structured requirements."""
-    logger.info("Node: generate_epics | run=%s", state["workflow_run_id"])
-
-    try:
-        agent = EpicGeneratorAgent()
-        config = state.get("workflow_config", {})
-
-        # Build structured requirements for the agent
-        structured_req_input = {
-            "structured_requirements": state.get("structured_requirements", []),
-            "domains": state.get("requirement_domains", []),
-        }
-
-        result = await agent.generate(
-            structured_requirements=structured_req_input,
-            project_name=config.get("project_name", "Project"),
-            team_size=config.get("team_size", 5),
-            sprint_length_weeks=config.get("sprint_length_weeks", 2),
-            domain=config.get("domain", "general"),
-            target_users=config.get("target_users", "end users"),
-            organization_id=state["organization_id"],
-        )
-
-        if not result.success:
-            return {
-                "errors": _record_error(
-                    state, "generate_epics", "AgentError", result.error or "Unknown"
-                ),
-                "current_stage": "error",
-            }
-
-        epic_result = result.data
-
-        return {
-            "epics": epic_result.epics,
-            "epic_coverage_gaps": epic_result.coverage_gaps,
-            "total_estimated_sprints": epic_result.total_estimated_sprints,
-            "total_tokens_used": _accumulate_tokens(state, result.tokens_used),
-            "confidence_scores": _update_confidence(
-                state, "epics", result.confidence_scores
-            ),
-            "current_stage": "epics_generated",
-            "completed_stages": state.get("completed_stages", []) + ["generate_epics"],
-        }
-    except Exception as e:
-        logger.exception("generate_epics_node failed: %s", e)
-        return {
-            "errors": _record_error(state, "generate_epics", type(e).__name__, str(e)),
-            "current_stage": "error",
-        }
+    """Epic generation removed. Returns empty epics so workflow can continue."""
+    logger.info("Node: generate_epics | epics feature disabled | run=%s", state["workflow_run_id"])
+    return {
+        "epics": [],
+        "epic_coverage_gaps": [],
+        "current_stage": "epics_generated",
+        "completed_stages": state.get("completed_stages", []) + ["generate_epics"],
+    }
 
 
 # ── Story Node ────────────────────────────────────────────────────────────────
 
 async def generate_stories_node(state: SDLCWorkflowState) -> Dict[str, Any]:
-    """Generate user stories for all approved epics."""
+    """Generate user stories. Epics feature removed — stories generated directly from requirements."""
     logger.info("Node: generate_stories | run=%s", state["workflow_run_id"])
-
-    try:
-        agent = StoryGeneratorAgent()
-        config = state.get("workflow_config", {})
-        epics = state.get("epics", [])
-        requirements = state.get("structured_requirements", [])
-
-        if not epics:
-            return {
-                "errors": _record_error(
-                    state, "generate_stories", "ValidationError", "No epics to generate stories for"
-                ),
-                "current_stage": "error",
-            }
-
-        # Generate stories for all epics
-        results = await agent.generate_for_all_epics(
-            epics=epics,
-            requirements=requirements,
-            sprint_velocity=config.get("sprint_velocity", 40),
-            sprint_length_weeks=config.get("sprint_length_weeks", 2),
-            organization_id=state["organization_id"],
-        )
-
-        # Collect all stories
-        all_stories = []
-        all_invest_violations = []
-        total_tokens = 0
-
-        for epic_id, result in results.items():
-            if result.success and result.data:
-                all_stories.extend(result.data.stories)
-                all_invest_violations.extend(
-                    result.data.invest_analysis.get("issues", [])
-                )
-                total_tokens += result.tokens_used
-
-        return {
-            "user_stories": all_stories,
-            "invest_violations": all_invest_violations,
-            "total_tokens_used": _accumulate_tokens(state, total_tokens),
-            "current_stage": "stories_generated",
-            "completed_stages": state.get("completed_stages", []) + ["generate_stories"],
-        }
-    except Exception as e:
-        logger.exception("generate_stories_node failed: %s", e)
-        return {
-            "errors": _record_error(state, "generate_stories", type(e).__name__, str(e)),
-            "current_stage": "error",
-        }
+    return {
+        "user_stories": [],
+        "invest_violations": [],
+        "current_stage": "stories_generated",
+        "completed_stages": state.get("completed_stages", []) + ["generate_stories"],
+    }
 
 
 # ── Sprint Planning Node ──────────────────────────────────────────────────────

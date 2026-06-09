@@ -8,7 +8,6 @@ Each agent is responsible for a specific aspect of the SDLC workflow.
 from app.ai.agents.base_agent import BaseAgent
 from app.ai.agents.requirement_extractor import RequirementExtractorAgent
 from app.ai.agents.requirement_structurer import RequirementStructurerAgent
-from app.ai.agents.epic_generator import EpicGeneratorAgent
 from app.ai.agents.story_generator import StoryGeneratorAgent
 from app.ai.agents.sprint_planner import SprintPlannerAgent
 from app.ai.agents.task_breakdown import TaskBreakdownAgent
@@ -26,7 +25,6 @@ __all__ = [
     "BaseAgent",
     "RequirementExtractorAgent",
     "RequirementStructurerAgent",
-    "EpicGeneratorAgent",
     "StoryGeneratorAgent",
     "SprintPlannerAgent",
     "TaskBreakdownAgent",

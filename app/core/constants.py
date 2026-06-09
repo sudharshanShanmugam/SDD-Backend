@@ -52,12 +52,6 @@ class Permission(str, Enum):
     REQUIREMENT_DELETE = "requirement:delete"
     REQUIREMENT_APPROVE = "requirement:approve"
 
-    # Epic
-    EPIC_CREATE = "epic:create"
-    EPIC_READ = "epic:read"
-    EPIC_UPDATE = "epic:update"
-    EPIC_DELETE = "epic:delete"
-
     # User Story
     STORY_CREATE = "story:create"
     STORY_READ = "story:read"
@@ -112,7 +106,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.DOCUMENT_DELETE, Permission.DOCUMENT_PROCESS,
         Permission.REQUIREMENT_CREATE, Permission.REQUIREMENT_READ, Permission.REQUIREMENT_UPDATE,
         Permission.REQUIREMENT_DELETE, Permission.REQUIREMENT_APPROVE,
-        Permission.EPIC_CREATE, Permission.EPIC_READ, Permission.EPIC_UPDATE, Permission.EPIC_DELETE,
         Permission.STORY_CREATE, Permission.STORY_READ, Permission.STORY_UPDATE, Permission.STORY_DELETE,
         Permission.SPRINT_CREATE, Permission.SPRINT_READ, Permission.SPRINT_UPDATE,
         Permission.SPRINT_DELETE, Permission.SPRINT_MANAGE,
@@ -131,7 +124,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.DOCUMENT_DELETE, Permission.DOCUMENT_PROCESS,
         Permission.REQUIREMENT_CREATE, Permission.REQUIREMENT_READ, Permission.REQUIREMENT_UPDATE,
         Permission.REQUIREMENT_DELETE, Permission.REQUIREMENT_APPROVE,
-        Permission.EPIC_CREATE, Permission.EPIC_READ, Permission.EPIC_UPDATE, Permission.EPIC_DELETE,
         Permission.STORY_CREATE, Permission.STORY_READ, Permission.STORY_UPDATE, Permission.STORY_DELETE,
         Permission.SPRINT_CREATE, Permission.SPRINT_READ, Permission.SPRINT_UPDATE,
         Permission.SPRINT_DELETE, Permission.SPRINT_MANAGE,
@@ -147,7 +139,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.DOCUMENT_UPLOAD, Permission.DOCUMENT_READ, Permission.DOCUMENT_UPDATE,
         Permission.DOCUMENT_PROCESS,
         Permission.REQUIREMENT_CREATE, Permission.REQUIREMENT_READ, Permission.REQUIREMENT_UPDATE,
-        Permission.EPIC_CREATE, Permission.EPIC_READ, Permission.EPIC_UPDATE,
         Permission.STORY_CREATE, Permission.STORY_READ, Permission.STORY_UPDATE,
         Permission.SPRINT_READ,
         Permission.TASK_READ,
@@ -160,7 +151,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.PROJECT_READ, Permission.PROJECT_UPDATE,
         Permission.DOCUMENT_READ,
         Permission.REQUIREMENT_READ, Permission.REQUIREMENT_UPDATE,
-        Permission.EPIC_READ, Permission.EPIC_UPDATE,
         Permission.STORY_READ, Permission.STORY_UPDATE,
         Permission.SPRINT_CREATE, Permission.SPRINT_READ, Permission.SPRINT_UPDATE, Permission.SPRINT_MANAGE,
         Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE, Permission.TASK_ASSIGN,
@@ -173,7 +163,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.PROJECT_READ,
         Permission.DOCUMENT_READ,
         Permission.REQUIREMENT_READ,
-        Permission.EPIC_READ,
         Permission.STORY_READ, Permission.STORY_UPDATE,
         Permission.SPRINT_READ,
         Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
@@ -184,7 +173,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.PROJECT_READ,
         Permission.DOCUMENT_READ,
         Permission.REQUIREMENT_READ,
-        Permission.EPIC_READ,
         Permission.STORY_READ,
         Permission.SPRINT_READ,
         Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
@@ -195,7 +183,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.PROJECT_READ,
         Permission.DOCUMENT_READ,
         Permission.REQUIREMENT_READ,
-        Permission.EPIC_READ,
         Permission.STORY_READ,
         Permission.SPRINT_READ,
         Permission.TASK_READ,
@@ -206,7 +193,6 @@ ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
         Permission.PROJECT_READ,
         Permission.DOCUMENT_READ,
         Permission.REQUIREMENT_READ,
-        Permission.EPIC_READ,
         Permission.STORY_READ,
         Permission.SPRINT_READ,
         Permission.TASK_READ,
@@ -218,8 +204,6 @@ class WorkflowStage(str, Enum):
     DOCUMENT_UPLOAD = "document_upload"
     REQUIREMENT_EXTRACTION = "requirement_extraction"
     REQUIREMENT_REVIEW = "requirement_review"
-    EPIC_GENERATION = "epic_generation"
-    EPIC_REVIEW = "epic_review"
     STORY_GENERATION = "story_generation"
     STORY_REVIEW = "story_review"
     SPRINT_PLANNING = "sprint_planning"
@@ -310,14 +294,6 @@ class SprintStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
-
-
-class EpicStatus(str, Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    ON_HOLD = "on_hold"
 
 
 class OrgPlan(str, Enum):
