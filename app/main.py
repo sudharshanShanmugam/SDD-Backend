@@ -102,7 +102,9 @@ def create_app() -> FastAPI:
     from app.middleware.tenant import TenantMiddleware
     from app.middleware.rate_limit import RateLimitMiddleware
     from app.middleware.audit import AuditMiddleware
+    from app.middleware.trailing_slash import StripTrailingSlashMiddleware
 
+    app.add_middleware(StripTrailingSlashMiddleware)
     app.add_middleware(AuditMiddleware)
     app.add_middleware(
         RateLimitMiddleware,

@@ -729,14 +729,15 @@ async def _generate_tasks_from_story(story, config: dict) -> list[dict]:
         response = await client.chat.completions.create(
             model=settings.LLM_MODEL,
             messages=[
-                {"role": "system", "content": "You are a senior software engineer breaking down user stories into tasks. Return valid JSON."},
+                {"role": "system", "content": "You are a senior software engineer breaking down user stories into development tasks. Return valid JSON."},
                 {"role": "user", "content": f"""Break down this user story into up to {max_tasks} development tasks:
 
 Story: {story.title}
 Description: {story.description or ''}
 Acceptance criteria: {story.acceptance_criteria or []}
 
-For each task: title, description, task_type (development/design/testing/documentation/devops), estimated_hours, priority.
+Generate only development tasks (implementation work a developer would do). Do NOT include QA, testing, DevOps, or documentation tasks.
+For each task: title, description, task_type (always "development"), estimated_hours, priority.
 Return JSON: {{"tasks": [...]}}"""},
             ],
             response_format={"type": "json_object"},
